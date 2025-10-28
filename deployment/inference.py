@@ -6,45 +6,105 @@ import os
 import json
 import sys
 from typing import Dict, Any
-
-# Add the parent directory to path to import langchain_module
-sys.path.insert(0, '/opt/ml/code')
-
-from langchain_community.tools import DuckDuckGoSearchRun
-from langchain_aws import ChatBedrock
-from langchain_core.messages import SystemMessage, HumanMessage
-import boto3
 import re
+
+print("Starting inference.py import...")
+print(f"Python path: {sys.path}")
+
+# Try to import LangChain modules with error handling
+try:
+    print("Importing langchain_community.tools...")
+    from langchain_community.tools import DuckDuckGoSearchRun
+    print("✓ DuckDuckGoSearchRun imported")
+except ImportError as e:
+    print(f"⚠️ Could not import DuckDuckGoSearchRun: {e}")
+    DuckDuckGoSearchRun = None
+
+try:
+    print("Importing langchain_aws...")
+    from langchain_aws import ChatBedrock
+    print("✓ ChatBedrock imported")
+except ImportError as e:
+    print(f"⚠️ Could not import ChatBedrock: {e}")
+    ChatBedrock = None
+
+try:
+    print("Importing langchain_core.messages...")
+    from langchain_core.messages import SystemMessage, HumanMessage
+    print("✓ Messages imported")
+except ImportError as e:
+    print(f"⚠️ Could not import messages: {e}")
+    SystemMessage = None
+    HumanMessage = None
+
+try:
+    print("Importing boto3...")
+    import boto3
+    print("✓ boto3 imported")
+except ImportError as e:
+    print(f"⚠️ Could not import boto3: {e}")
+    boto3 = None
+
+print("All imports complete!")
 
 class LangChainEndpointHandler:
     """Handler for SageMaker inference requests"""
     
     def __init__(self):
         """Initialize the handler with LangChain components"""
-        self.search = DuckDuckGoSearchRun()
+        print("LangChainEndpointHandler.__init__ called")
+        
+        # Initialize search
+        if DuckDuckGoSearchRun is None:
+            print("⚠️ DuckDuckGoSearchRun not available")
+            self.search = None
+        else:
+            try:
+                self.search = DuckDuckGoSearchRun()
+                print("✓ Search initialized")
+            except Exception as e:
+                print(f"⚠️ Error initializing search: {e}")
+                self.search = None
+        
+        # Initialize LLM
         self.llm = self._init_bedrock_llm()
+        if self.llm:
+            print("✓ LLM initialized")
+        else:
+            print("⚠️ LLM not initialized")
     
     def _init_bedrock_llm(self):
         """Initialize AWS Bedrock LLM"""
+        if ChatBedrock is None:
+            print("⚠️ ChatBedrock not available")
+            return None
+            
+        if boto3 is None:
+            print("⚠️ boto3 not available")
+            return None
+            
         try:
             aws_region = os.getenv('AWS_REGION', 'us-east-1')
             model_id = os.getenv('BEDROCK_MODEL_ID', 'anthropic.claude-3-5-sonnet-20241022-v2:0')
             
-            # Use SageMaker execution role for Bedrock access
+            print(f"Creating Bedrock client in region: {aws_region}")
             bedrock_client = boto3.client(
                 service_name='bedrock-runtime',
                 region_name=aws_region
             )
             
+            print(f"Creating ChatBedrock with model: {model_id}")
             llm = ChatBedrock(
                 client=bedrock_client,
                 model_id=model_id,
                 temperature=0.7
             )
-            print(f"Successfully initialized AWS Bedrock with model: {model_id}")
+            print(f"✓ Successfully initialized AWS Bedrock with model: {model_id}")
             return llm
         except Exception as e:
-            print(f"Error initializing AWS Bedrock: {e}")
+            print(f"❌ Error initializing AWS Bedrock: {e}")
+            import traceback
+            traceback.print_exc()
             return None
     
     def _extract_sources(self, search_results: str):
@@ -94,8 +154,17 @@ class LangChainEndpointHandler:
         """Process a user query and return response"""
         try:
             # Perform web search
+            if self.search is None:
+                return {
+                    "response": "Search functionality not available",
+                    "sources": [],
+                    "status": "error"
+                }
+            
             search_query = f"international students Dallas Texas {query}"
+            print(f"Performing search for: {search_query}")
             search_results = self.search.run(search_query)
+            print(f"Search completed, results length: {len(search_results)}")
             
             # Extract sources
             sources = self._extract_sources(search_results)
@@ -164,9 +233,18 @@ _handler = None
 def model_fn(model_dir):
     """Load the model for SageMaker"""
     global _handler
-    if _handler is None:
-        _handler = LangChainEndpointHandler()
-    return _handler
+    try:
+        print(f"Loading model from: {model_dir}")
+        if _handler is None:
+            print("Initializing LangChainEndpointHandler...")
+            _handler = LangChainEndpointHandler()
+            print("Handler initialized successfully")
+        return _handler
+    except Exception as e:
+        print(f"Error in model_fn: {e}")
+        import traceback
+        traceback.print_exc()
+        raise
 
 def input_fn(request_body, content_type='application/json'):
     """Parse input data"""

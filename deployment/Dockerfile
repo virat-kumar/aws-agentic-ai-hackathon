@@ -6,22 +6,20 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Set working directory
+# Set working directory for SageMaker
 WORKDIR /opt/ml/code
 
 # Copy requirements and install dependencies
-COPY requirements-sagemaker.txt requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+COPY requirements-sagemaker.txt /opt/ml/code/
+RUN pip install --no-cache-dir -r /opt/ml/code/requirements-sagemaker.txt
 
 # Copy inference script
-COPY inference.py .
+COPY inference.py /opt/ml/code/
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=TRUE
 ENV PYTHONDONTWRITEBYTECODE=TRUE
-
-# SageMaker requirements
 ENV SAGEMAKER_PROGRAM=inference.py
 
-# Run the entry point
-CMD ["python", "inference.py"]
+# Set the entrypoint
+ENTRYPOINT ["python"]
