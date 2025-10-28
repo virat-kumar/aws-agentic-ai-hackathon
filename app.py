@@ -104,8 +104,8 @@ with st.sidebar:
     
     st.header("⚙️ Settings")
     
-    st.info("🌐 Powered by Real-Time Web Search")
-    st.caption("Queries are validated for relevance and searched on the web")
+    st.info("🤖 Powered by Azure OpenAI (GPT-4o) + Web Search")
+    st.caption("Queries are validated for relevance, searched on web, and synthesized by AI")
     
     if st.button("Clear Chat", type="secondary"):
         st.session_state.messages = []
@@ -140,7 +140,8 @@ if prompt := st.chat_input("Ask me anything about living in Dallas..."):
 st.divider()
 st.markdown("""
 <div style='text-align: center; color: #666; font-size: 0.9rem;'>
-    <p>Powered by LangChain & DuckDuckGo Search | Built for International Students in Dallas</p>
+    <p>Powered by Azure OpenAI (GPT-4o) + LangChain + Web Search</p>
+    <p>Built for International Students in Dallas</p>
     <p>© 2024 Dallas Student Navigator</p>
 </div>
 """, unsafe_allow_html=True)

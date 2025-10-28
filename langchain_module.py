@@ -1,12 +1,14 @@
 """
 LangChain Module for Dallas Student Navigator
-Handles web search and query validation for international students
+Handles web search and query validation for international students using Azure OpenAI
 """
 
 import os
 from typing import List, Dict
 from langchain_community.tools import DuckDuckGoSearchRun
 from dotenv import load_dotenv
+from langchain_openai import AzureChatOpenAI
+from langchain_core.messages import SystemMessage, HumanMessage
 
 load_dotenv()
 
@@ -70,22 +72,47 @@ class StudentQueryValidator:
 
 
 class WebSearchAgent:
-    """Agent that performs web search and synthesizes responses"""
+    """Agent that performs web search and uses Azure OpenAI to synthesize responses"""
     
     def __init__(self):
         self.search = DuckDuckGoSearchRun()
         self.validator = StudentQueryValidator()
+        self.llm = self._init_azure_llm()
+    
+    def _init_azure_llm(self):
+        """Initialize Azure OpenAI LLM"""
+        try:
+            azure_endpoint = os.getenv('AZURE_OPENAI_ENDPOINT')
+            azure_api_key = os.getenv('AZURE_OPENAI_API_KEY')
+            azure_api_version = os.getenv('AZURE_OPENAI_API_VERSION', '2024-02-15-preview')
+            model_name = os.getenv('AZURE_OPENAI_MODEL', 'gpt-4o')
+            
+            if azure_endpoint and azure_api_key:
+                llm = AzureChatOpenAI(
+                    azure_endpoint=azure_endpoint,
+                    api_key=azure_api_key,
+                    api_version=azure_api_version,
+                    model=model_name,
+                    temperature=0.7
+                )
+                return llm
+            else:
+                print("Warning: Azure OpenAI credentials not found. Using web search only.")
+                return None
+        except Exception as e:
+            print(f"Error initializing Azure OpenAI: {e}")
+            return None
         
     def search_and_respond(self, query: str, conversation_history: List[Dict] = None) -> str:
         """
-        Perform web search and return a synthesized response
+        Perform web search and use Azure OpenAI to synthesize responses
         
         Args:
             query: User's question
             conversation_history: Previous conversation messages
             
         Returns:
-            Response string with search results
+            Response string with synthesized search results
         """
         # Validate query
         validation = self.validator.is_relevant_query(query)
@@ -101,28 +128,63 @@ class WebSearchAgent:
                 "Could you ask something related to these topics?"
             )
         
-        # If relevant, perform search
+        # If relevant, perform search and synthesize with LLM
         try:
             # Add context for better search results
             search_query = f"international students Dallas Texas {query}"
             search_results = self.search.run(search_query)
             
-            # Build response
-            categories = validation['matched_categories']
-            category_str = ", ".join(categories) if categories else "General"
+            # Use Azure OpenAI to synthesize the response if available
+            if self.llm:
+                categories = validation['matched_categories']
+                category_str = ", ".join(categories) if categories else "General"
+                
+                # Build prompt for LLM
+                system_prompt = f"""You are a helpful assistant for international students in Dallas, Texas.
+You help with: Housing, Groceries, Transportation, Legal Info, and Cultural Tips.
+
+The user asked about: {query}
+Category: {category_str}
+
+Use the following search results to provide a comprehensive, accurate answer.
+Be friendly, empathetic, and provide practical, actionable advice.
+Focus on information relevant to international students."""
+
+                prompt = f"""{system_prompt}
+
+Search Results:
+{search_results}
+
+User Question: {query}
+
+Provide a helpful answer based on the search results above."""
+
+                # Generate response using Azure OpenAI
+                messages_langchain = [
+                    SystemMessage(content=system_prompt),
+                    HumanMessage(content=prompt)
+                ]
+                
+                response = self.llm.invoke(messages_langchain)
+                generated_text = response.content if hasattr(response, 'content') else str(response)
+                
+                return f"{generated_text}\n\n---\n*Sources: Web search results*"
             
-            response = f"**Category**: {category_str}\n\n"
-            response += f"**Question**: {query}\n\n"
-            response += "**Answer**:\n\n"
-            response += search_results
-            
-            # Add source citation
-            response += "\n\n---\n*Search results from DuckDuckGo*"
-            
-            return response
+            else:
+                # Fallback to simple response if LLM not available
+                categories = validation['matched_categories']
+                category_str = ", ".join(categories) if categories else "General"
+                
+                response = f"**Category**: {category_str}\n\n"
+                response += f"**Question**: {query}\n\n"
+                response += "**Answer**:\n\n"
+                response += search_results
+                response += "\n\n---\n*Search results from DuckDuckGo*"
+                
+                return response
             
         except Exception as e:
-            return f"I encountered an error while searching. Please try again. Error: {str(e)}"
+            return f"I encountered an error while processing your request. Please try again. Error: {str(e)}"
     
     def get_matched_categories(self, query: str) -> List[str]:
         """Get categories that match the query"""
