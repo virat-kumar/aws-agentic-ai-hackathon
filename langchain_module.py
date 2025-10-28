@@ -26,11 +26,11 @@ class StudentQueryValidator:
     ]
     
     CATEGORY_KEYWORDS = {
-        "Housing": ["apartment", "housing", "rent", "room", "accommodation", "hostel", "dorm", "lease", "landlord", "flat"],
-        "Groceries": ["grocery", "food", "market", "store", "shopping", "supermarket", "ingredients", "restaurant"],
-        "Transportation": ["bus", "train", "metro", "transport", "uber", "lyft", "taxi", "driving", "route", "transit"],
-        "Legal Info": ["visa", "work permit", "legal", "immigration", "document", "status", "f1", "f2", "j1"],
-        "Cultural Tips": ["culture", "etiquette", "custom", "tradition", "festival", "holiday", "local", "community"]
+        "Housing": ["apartment", "housing", "rent", "room", "accommodation", "hostel", "dorm", "lease", "landlord", "flat", "rental", "housing", "living", "stay", "residence"],
+        "Groceries": ["grocery", "food", "market", "store", "shopping", "supermarket", "ingredients", "restaurant", "eat", "buy", "purchase", "shop"],
+        "Transportation": ["bus", "train", "metro", "transport", "uber", "lyft", "taxi", "driving", "route", "transit", "get around", "commute", "travel", "public transit", "dart"],
+        "Legal Info": ["visa", "work permit", "legal", "immigration", "document", "status", "f1", "f2", "j1", "cpt", "opt", "curricular practical training", "optional practical training", "application", "apply", "process", "authorization", "sevis", "ds-160", "i-20", "work authorization", "permit", "international student"],
+        "Cultural Tips": ["culture", "etiquette", "custom", "tradition", "festival", "holiday", "local", "community", "social", "people", "make friends", "events"]
     }
     
     def is_relevant_query(self, query: str) -> Dict[str, any]:
@@ -54,12 +54,18 @@ class StudentQueryValidator:
                     break
         
         # Check if query contains student-related terms
-        student_terms = ["student", "international", "study", "university", "dallas", "texas"]
+        student_terms = ["student", "international", "study", "university", "dallas", "texas", "apply", "application", "process"]
         has_student_context = any(term in query_lower for term in student_terms)
         
+        # Also check for question words that indicate it might be relevant
+        question_indicators = ["how", "what", "where", "when", "why", "can i", "do i", "should i", "need to"]
+        has_question_format = any(term in query_lower for term in question_indicators)
+        
+        # Be more permissive - allow queries that seem like legitimate questions
         is_relevant = (
             len(matched_categories) > 0 or 
             has_student_context or
+            has_question_format or
             "dallas" in query_lower or
             "texas" in query_lower
         )
