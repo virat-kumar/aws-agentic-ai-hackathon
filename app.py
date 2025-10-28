@@ -28,6 +28,49 @@ if "messages" not in st.session_state:
 if "quick_prompt" not in st.session_state:
     st.session_state.quick_prompt = None
 
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+
+def show_login():
+    """Show login page"""
+    st.markdown("""
+    <style>
+        .login-container {
+            max-width: 400px;
+            margin: 100px auto;
+            padding: 2rem;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .login-title {
+            text-align: center;
+            font-size: 2rem;
+            margin-bottom: 2rem;
+            color: #E77501;
+        }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.markdown('<h1 class="login-title">🔐 Login Required</h1>', unsafe_allow_html=True)
+        
+        with st.form("login_form"):
+            st.text_input("Email", key="login_email", placeholder="titan@utdallas.com")
+            st.text_input("Password", type="password", key="login_password", placeholder="Enter password")
+            submit_button = st.form_submit_button("Login", use_container_width=True)
+            
+            if submit_button:
+                email = st.session_state.login_email
+                password = st.session_state.login_password
+                
+                if email == "titan@utdallas.com" and password == "password":
+                    st.session_state.logged_in = True
+                    st.rerun()
+                else:
+                    st.error("❌ Invalid email or password")
+
 def format_message(message):
     """Format message with markdown support"""
     return message
@@ -96,6 +139,11 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# Check if user is logged in
+if not st.session_state.logged_in:
+    show_login()
+    st.stop()  # Stop execution here, don't show main app
+
 # Main UI - Logo and Header
 col1, col2 = st.columns([1, 6])
 
@@ -147,7 +195,17 @@ with st.sidebar:
     st.info("🚀 Powered by AWS Bedrock, SageMaker & QuickSight")
     st.caption("AI-powered guidance for international students in Dallas")
     
-    if st.button("Clear Chat", type="secondary"):
+    st.divider()
+    
+    if st.button("Clear Chat", type="secondary", use_container_width=True):
+        st.session_state.messages = []
+        st.rerun()
+    
+    st.divider()
+    
+    # Logout button
+    if st.button("🚪 Logout", type="secondary", use_container_width=True):
+        st.session_state.logged_in = False
         st.session_state.messages = []
         st.rerun()
 
