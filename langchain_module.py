@@ -151,44 +151,68 @@ class WebSearchAgent:
     
     def _remove_thinking_process(self, text: str) -> str:
         """Remove thinking process and internal notes from response"""
-        # Common patterns that indicate thinking process
+        # Common patterns that indicate thinking process - more comprehensive list
         thinking_patterns = [
-            r'(?i)^we must mention.*$',
-            r'(?i)^let\'s craft.*$',
+            r'(?i)^we (must|need to|should).*$',
+            r'(?i)^let\'s.*$',
             r'(?i)^let me.*$',
-            r'(?i)^i need to.*$',
-            r'(?i)^i should.*$',
+            r'(?i)^i (need to|should|will).*$',
             r'(?i)^internal note.*$',
             r'(?i)^thinking:.*$',
             r'(?i)^reasoning:.*$',
+            r'(?i)^there\'s (only )?one.*result.*snippet.*$',
+            r'(?i)^provide (practical )?advice:.*$',
+            r'(?i)^also mention.*$',
+            r'(?i)^provide tips? about.*$',
+            r'(?i)^provide friendly tone.*$',
+            r'(?i)^below are.*$',
+            r'(?i)^instructions? (to|for).*$',
+            r'(?i)^use \[1\].*snippet.*$',
+            r'(?i)^reminder:.*$',
+            r'(?i)^concluding sentence.*$',
+            r'(?i)^a concluding.*$',
         ]
         
         lines = text.split('\n')
         cleaned_lines = []
-        skip_until_blank = False
+        skip_count = 0  # Track how many lines to skip
         
-        for line in lines:
-            # Skip lines that match thinking patterns
+        i = 0
+        while i < len(lines):
+            line = lines[i]
+            
+            # Check if this line matches thinking patterns
             is_thinking = False
             for pattern in thinking_patterns:
-                if re.match(pattern, line.strip()):
+                if re.search(pattern, line.strip()):
                     is_thinking = True
                     break
             
-            # If we hit a thinking line, skip until blank line
             if is_thinking:
-                skip_until_blank = True
+                # Skip this line and the next few lines (bullets or follow-ups)
+                skip_count = 10  # Skip up to 10 lines after thinking
+                i += 1
                 continue
             
-            # If skipping, only add back after blank line
-            if skip_until_blank:
-                if line.strip() == '':
-                    skip_until_blank = False
-                continue
+            # If we're in skip mode, skip this line
+            if skip_count > 0:
+                # If we hit a blank line or heading, stop skipping
+                if line.strip() == '' or re.match(r'^#+\s+', line):
+                    skip_count = 0
+                else:
+                    skip_count -= 1
+                    i += 1
+                    continue
             
             cleaned_lines.append(line)
+            i += 1
         
-        return '\n'.join(cleaned_lines).strip()
+        result = '\n'.join(cleaned_lines).strip()
+        
+        # Additional cleanup: remove paragraphs that start with "We need to answer"
+        result = re.sub(r'We need to answer.*?\.\s*', '', result, flags=re.DOTALL | re.IGNORECASE)
+        
+        return result
         
     def search_and_respond(self, query: str, conversation_history: List[Dict] = None) -> str:
         """
@@ -263,7 +287,12 @@ Focus on information relevant to international students.
 
 IMPORTANT: When mentioning specific information from the search results, add inline citations like [1], [2], etc. in your response.
 
-CRITICAL: Only output the final answer. Do not include your thinking process, reasoning, or any internal notes in your response. Provide only the actual answer to the user."""
+CRITICAL RULES:
+1. ONLY output the final answer to the user. Do NOT include thinking, planning, notes, or instructions to yourself.
+2. Do NOT write phrases like "We need to answer...", "There's only one result...", "Provide advice...", "Also mention...", etc.
+3. Do NOT include backticks or code formatting around URLs in your response.
+4. Start directly with the answer - be concise and useful.
+5. Do not explain what you're about to do - just do it."""
                 
                 prompt_with_citations = f"""Search Results:
 {search_results}
@@ -285,6 +314,9 @@ Remember: Only provide the final answer. Do not include any thinking process, in
                 
                 # Post-process to remove thinking process and internal notes
                 generated_text = self._remove_thinking_process(generated_text)
+                
+                # Clean up backticks around URLs - convert `http://url` to plain URL
+                generated_text = re.sub(r'`(https?://[^`]+)`', r'\1', generated_text)
                 
                 # Append sources if available
                 if sources:
