@@ -8,6 +8,7 @@ import boto3
 import os
 from datetime import datetime
 from dotenv import load_dotenv
+from langchain_module import get_web_search_agent
 
 # Load environment variables
 load_dotenv()
@@ -20,70 +21,25 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Initialize AWS Bedrock client
-@st.cache_resource
-def init_bedrock_client():
-    """Initialize AWS Bedrock client"""
-    try:
-        client = boto3.client(
-            'bedrock-runtime',
-            region_name=os.getenv('AWS_REGION', 'us-east-1')
-        )
-        return client
-    except Exception as e:
-        st.error(f"Error initializing Bedrock client: {e}")
-        return None
-
 # Initialize session state
 if "messages" not in st.session_state:
     st.session_state.messages = []
-    
-if "bedrock_client" not in st.session_state:
-    st.session_state.bedrock_client = init_bedrock_client()
 
 def format_message(message):
     """Format message with markdown support"""
     return message
 
-def invoke_bedrock(prompt, conversation_history):
-    """Invoke AWS Bedrock with the prompt"""
-    if not st.session_state.bedrock_client:
-        return "Error: Bedrock client not initialized. Please check your AWS credentials."
-    
+@st.cache_resource
+def get_agent():
+    """Get the web search agent instance"""
+    return get_web_search_agent()
+
+def get_response(prompt, conversation_history):
+    """Get response from web search agent"""
     try:
-        # Build the conversation context
-        system_prompt = """You are a helpful AI assistant for international students in Dallas, Texas. 
-        You provide guidance on:
-        - Housing options and neighborhoods
-        - Grocery stores and shopping
-        - Transportation (public transit, rideshare)
-        - Legal requirements (visa, work permits)
-        - Cultural tips and integration
-        
-        Be friendly, empathetic, and provide practical, actionable advice."""
-        
-        # Prepare the full conversation for the model
-        conversation_text = f"{system_prompt}\n\n"
-        
-        # Add conversation history
-        for msg in conversation_history[-10:]:  # Keep last 10 exchanges
-            if msg["role"] == "user":
-                conversation_text += f"\nUser: {msg['content']}\n"
-            elif msg["role"] == "assistant":
-                conversation_text += f"\nAssistant: {msg['content']}\n"
-        
-        conversation_text += f"\nUser: {prompt}\n\nAssistant:"
-        
-        # For now, return a placeholder response
-        # In production, you would invoke the actual Bedrock model
-        model_id = os.getenv('BEDROCK_MODEL_ID', 'anthropic.claude-v2')
-        
-        response_text = "I'm an AI assistant to help international students in Dallas. "
-        response_text += "I can help you with housing, groceries, transportation, legal matters, and cultural tips. "
-        response_text += "How can I assist you today?"
-        
-        return response_text
-        
+        agent = get_agent()
+        response = agent.search_and_respond(prompt, conversation_history)
+        return response
     except Exception as e:
         return f"Error: {str(e)}"
 
@@ -147,12 +103,9 @@ with st.sidebar:
     st.divider()
     
     st.header("⚙️ Settings")
-    model_choice = st.selectbox(
-        "Choose Model",
-        ["Claude 3 Sonnet", "Claude 3 Opus", "Llama 2"]
-    )
     
-    temperature = st.slider("Temperature", 0.0, 1.0, 0.7)
+    st.info("🌐 Powered by Real-Time Web Search")
+    st.caption("Queries are validated for relevance and searched on the web")
     
     if st.button("Clear Chat", type="secondary"):
         st.session_state.messages = []
@@ -176,8 +129,8 @@ if prompt := st.chat_input("Ask me anything about living in Dallas..."):
     
     # Generate and display assistant response
     with st.chat_message("assistant"):
-        with st.spinner("Thinking..."):
-            response = invoke_bedrock(prompt, st.session_state.messages)
+        with st.spinner("🔍 Searching the web..."):
+            response = get_response(prompt, st.session_state.messages)
             st.markdown(response)
     
     # Add assistant response to chat history
@@ -187,7 +140,7 @@ if prompt := st.chat_input("Ask me anything about living in Dallas..."):
 st.divider()
 st.markdown("""
 <div style='text-align: center; color: #666; font-size: 0.9rem;'>
-    <p>Powered by AWS Bedrock | Built for International Students in Dallas</p>
+    <p>Powered by LangChain & DuckDuckGo Search | Built for International Students in Dallas</p>
     <p>© 2024 Dallas Student Navigator</p>
 </div>
 """, unsafe_allow_html=True)
