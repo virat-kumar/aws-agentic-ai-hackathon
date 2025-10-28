@@ -6,11 +6,6 @@ Handles web search and query validation for international students
 import os
 from typing import List, Dict
 from langchain_community.tools import DuckDuckGoSearchRun
-from langchain.prompts import PromptTemplate
-from langchain.chains import LLMChain
-from langchain_openai import ChatOpenAI
-from langchain_core.output_parsers import StrOutputParser
-import boto3
 from dotenv import load_dotenv
 
 load_dotenv()
