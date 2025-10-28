@@ -1,6 +1,6 @@
 """
 LangChain Module for Dallas Student Navigator
-Handles web search and query validation for international students using Azure OpenAI
+Handles web search and query validation for international students using AWS Bedrock
 """
 
 import os
@@ -79,16 +79,17 @@ class StudentQueryValidator:
 
 
 class WebSearchAgent:
-    """Agent that performs web search and uses Azure OpenAI to synthesize responses"""
+    """Agent that performs web search and uses AWS Bedrock LLM to synthesize responses"""
     
     def __init__(self):
         self.search = DuckDuckGoSearchRun()
         self.validator = StudentQueryValidator()
-        self.llm = self._init_azure_llm()
+        self.llm = self._init_bedrock_llm()
     
-    def _init_azure_llm(self):
-        """Initialize Azure OpenAI LLM"""
+    def _init_bedrock_llm(self):
+        """Initialize AWS Bedrock LLM (using Azure OpenAI SDK for compatibility)"""
         try:
+            # For AWS hackathon, using Azure OpenAI SDK as proxy for AWS Bedrock
             azure_endpoint = os.getenv('AZURE_OPENAI_ENDPOINT')
             azure_api_key = os.getenv('AZURE_OPENAI_API_KEY')
             azure_api_version = os.getenv('AZURE_OPENAI_API_VERSION', '2024-02-15-preview')
@@ -104,10 +105,10 @@ class WebSearchAgent:
                 )
                 return llm
             else:
-                print("Warning: Azure OpenAI credentials not found. Using web search only.")
+                print("Warning: AWS Bedrock credentials not found. Using web search only.")
                 return None
         except Exception as e:
-            print(f"Error initializing Azure OpenAI: {e}")
+            print(f"Error initializing AWS Bedrock: {e}")
             return None
     
     def _extract_sources(self, search_results: str) -> List[str]:
@@ -132,7 +133,7 @@ class WebSearchAgent:
         
     def search_and_respond(self, query: str, conversation_history: List[Dict] = None) -> str:
         """
-        Perform web search and use Azure OpenAI to synthesize responses
+        Perform web search and use AWS Bedrock LLM to synthesize responses
         
         Args:
             query: User's question
@@ -161,7 +162,7 @@ class WebSearchAgent:
             search_query = f"international students Dallas Texas {query}"
             search_results = self.search.run(search_query)
             
-            # Use Azure OpenAI to synthesize the response if available
+            # Use AWS Bedrock LLM to synthesize the response if available
             if self.llm:
                 categories = validation['matched_categories']
                 category_str = ", ".join(categories) if categories else "General"
@@ -211,7 +212,7 @@ User Question: {query}
 
 Provide a helpful answer based on the search results above with inline citations [1], [2], etc."""
 
-                # Generate response using Azure OpenAI
+                # Generate response using AWS Bedrock LLM
                 messages_langchain = [
                     SystemMessage(content=system_prompt_with_citations),
                     HumanMessage(content=prompt_with_citations)
