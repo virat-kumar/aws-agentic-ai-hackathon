@@ -139,7 +139,33 @@ class WebSearchAgent:
         
         # Limit to top 5 sources
         return sources[:5]
+    
+    def _build_standalone_query(self, query: str, conversation_history: List[Dict] = None) -> str:
+        """Build a standalone query from conversation context"""
+        if not conversation_history or len(conversation_history) == 0:
+            return query
         
+        # Get recent conversation context (last 3 exchanges)
+        recent_context = conversation_history[-6:] if len(conversation_history) > 6 else conversation_history
+        
+        # Build context string
+        context_parts = []
+        for msg in recent_context:
+            role = msg.get('role', '')
+            content = msg.get('content', '')
+            if role == 'user':
+                context_parts.append(f"User asked: {content}")
+            elif role == 'assistant':
+                # Truncate assistant responses for context
+                truncated = content[:100] + "..." if len(content) > 100 else content
+                context_parts.append(f"Assistant replied: {truncated}")
+        
+        context_str = "\n".join(context_parts)
+        
+        # Return the original query since we'll pass context to the LLM
+        # This ensures web search still works with the original query
+        return query
+    
     def search_and_respond(self, query: str, conversation_history: List[Dict] = None) -> str:
         """
         Perform web search and use AWS Bedrock LLM to synthesize responses
@@ -168,8 +194,13 @@ class WebSearchAgent:
         
         # If relevant, perform search and synthesize with LLM
         try:
+            # Build standalone query from conversation context
+            enhanced_query = self._build_standalone_query(query, conversation_history)
+            print(f"Original query: {query}")
+            print(f"Enhanced query: {enhanced_query}")
+            
             # Add context for better search results
-            search_query = f"international students Dallas Texas {query}"
+            search_query = f"international students Dallas Texas {enhanced_query}"
             search_results = self.search.run(search_query)
             
             # Use AWS Bedrock LLM to synthesize the response if available
@@ -200,12 +231,26 @@ Provide a helpful answer based on the search results above."""
                 # Extract URLs from search results for citations
                 sources = self._extract_sources(search_results)
                 
+                # Build conversation context
+                conversation_context = ""
+                if conversation_history and len(conversation_history) > 0:
+                    recent_history = conversation_history[-4:]  # Last 4 messages
+                    context_parts = []
+                    for msg in recent_history:
+                        if msg.get('role') == 'user':
+                            context_parts.append(f"Previous user question: {msg.get('content', '')}")
+                        elif msg.get('role') == 'assistant':
+                            # Keep assistant context brief
+                            content = msg.get('content', '')
+                            truncated = content[:200] + "..." if len(content) > 200 else content
+                            context_parts.append(f"Previous assistant response (excerpt): {truncated}")
+                    conversation_context = "\n\n".join(context_parts)
+                
                 # Add instruction for inline citations
                 system_prompt_with_citations = f"""You are a helpful assistant for international students in Dallas, Texas.
 You help with: Housing, Groceries, Transportation, Legal Info, and Cultural Tips.
 
-The user asked about: {query}
-Category: {category_str}
+Current Category: {category_str}
 
 Use the following search results to provide a comprehensive, accurate answer.
 Be friendly, empathetic, and provide practical, actionable advice.
@@ -213,20 +258,35 @@ Focus on information relevant to international students.
 
 IMPORTANT: When mentioning specific information from the search results, add inline citations like [1], [2], etc. in your response."""
                 
-                prompt_with_citations = f"""{system_prompt_with_citations}
-
-Search Results:
+                prompt_with_citations = f"""Search Results:
 {search_results}
 
-User Question: {query}
+Current User Question: {query}
+{("" if not conversation_context else f"\nConversation Context:\n{conversation_context}")}
 
 Provide a helpful answer based on the search results above with inline citations [1], [2], etc."""
 
                 # Generate response using AWS Bedrock LLM
-                messages_langchain = [
-                    SystemMessage(content=system_prompt_with_citations),
-                    HumanMessage(content=prompt_with_citations)
-                ]
+                # Build messages with conversation context
+                messages_langchain = []
+                
+                # Add system message
+                messages_langchain.append(SystemMessage(content=system_prompt_with_citations))
+                
+                # Add conversation history if available (but keep it minimal to avoid token limits)
+                if conversation_history and len(conversation_history) > 1:
+                    # Only include last 2 exchanges to keep context manageable
+                    for msg in conversation_history[-4:]:
+                        if msg.get('role') == 'user':
+                            messages_langchain.append(HumanMessage(content=f"Previous: {msg.get('content', '')}"))
+                        elif msg.get('role') == 'assistant':
+                            # Truncate assistant messages for context
+                            content = msg.get('content', '')
+                            truncated = content[:300] + "..." if len(content) > 300 else content
+                            messages_langchain.append(SystemMessage(content=f"Context: {truncated}"))
+                
+                # Add current human message
+                messages_langchain.append(HumanMessage(content=prompt_with_citations))
                 
                 response = self.llm.invoke(messages_langchain)
                 generated_text = response.content if hasattr(response, 'content') else str(response)
