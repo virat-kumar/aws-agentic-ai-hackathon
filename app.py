@@ -120,6 +120,7 @@ with st.sidebar:
     - 🚌 Transportation
     - ⚖️ Legal requirements
     - 🌍 Cultural integration
+    - 💰 Financial advice
     """)
     
     st.header("🚀 Quick Links")
