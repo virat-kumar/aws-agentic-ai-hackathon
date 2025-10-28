@@ -96,12 +96,24 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Main UI
-st.markdown('<div class="main-header">🌟 Dallas Student Navigator</div>', unsafe_allow_html=True)
-st.markdown('<div class="sub-header">Your AI Assistant for Life in Dallas</div>', unsafe_allow_html=True)
+# Main UI - Logo and Header
+col1, col2 = st.columns([1, 3])
+
+with col1:
+    # Display UTD logo
+    with open('utdlogo.svg', 'r') as f:
+        svg_logo = f.read()
+        st.markdown(svg_logo, unsafe_allow_html=True)
+
+with col2:
+    st.markdown('<div class="main-header">Dallas Student Navigator</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sub-header">Your AI Assistant for Life in Dallas</div>', unsafe_allow_html=True)
 
 # Sidebar with information
 with st.sidebar:
+    # UTD Logo in sidebar
+    st.image('utdlogo.svg', use_container_width=True)
+    
     st.header("📚 About")
     st.markdown("""
     This AI assistant helps international students with:
