@@ -41,3 +41,8 @@ data/processed/
 models/
 *.pkl
 *.joblib
+
+# Deployment artifacts
+deploy_log.txt
+deployment_status.txt
+deployment_v2.log
