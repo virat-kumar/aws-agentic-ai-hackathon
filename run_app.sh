@@ -3,6 +3,6 @@
 # Activate virtual environment
 source venv/bin/activate
 
-# Run Streamlit app
-streamlit run app.py
+# Run Streamlit app on all interfaces
+streamlit run app.py --server.address 0.0.0.0 --server.port 8501
 
