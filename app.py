@@ -117,8 +117,8 @@ with st.sidebar:
     
     st.header("⚙️ Settings")
     
-    st.info("🤖 Powered by Azure OpenAI (GPT-4o) + Web Search")
-    st.caption("Queries are validated for relevance, searched on web, and synthesized by AI")
+    st.info("🚀 Powered by AWS Bedrock, SageMaker & QuickSight")
+    st.caption("AI-powered guidance for international students in Dallas")
     
     if st.button("Clear Chat", type="secondary"):
         st.session_state.messages = []
@@ -145,7 +145,7 @@ if st.session_state.quick_prompt:
     
     # Generate and display assistant response
     with st.chat_message("assistant"):
-        with st.spinner("🔍 Searching the web..."):
+        with st.spinner("🤖 Processing with AWS services..."):
             response = get_response(prompt, st.session_state.messages)
             st.markdown(response)
     
@@ -167,7 +167,7 @@ if prompt := st.chat_input("Ask me anything about living in Dallas..."):
         
         # Generate and display assistant response
         with st.chat_message("assistant"):
-            with st.spinner("🔍 Searching the web..."):
+            with st.spinner("🤖 Processing with AWS services..."):
                 response = get_response(prompt, st.session_state.messages)
                 st.markdown(response)
         
@@ -178,7 +178,7 @@ if prompt := st.chat_input("Ask me anything about living in Dallas..."):
 st.divider()
 st.markdown("""
 <div style='text-align: center; color: #666; font-size: 0.9rem;'>
-    <p>Powered by Azure OpenAI (GPT-4o) + LangChain + Web Search</p>
+    <p>Powered by AWS Bedrock | AWS SageMaker | AWS QuickSight</p>
     <p>Built for International Students in Dallas</p>
     <p>© 2024 Dallas Student Navigator</p>
 </div>
