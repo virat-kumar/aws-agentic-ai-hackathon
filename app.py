@@ -46,6 +46,22 @@ def get_response(prompt, conversation_history):
     except Exception as e:
         return f"Error: {str(e)}"
 
+def process_links_for_new_tab(text):
+    """Process markdown links to open in new tabs"""
+    import re
+    # Convert markdown links [text](url) to HTML with target="_blank"
+    pattern = r'\[([^\]]+)\]\(([^\)]+)\)'
+    
+    def replace_func(match):
+        link_text = match.group(1)
+        link_url = match.group(2)
+        return f'<a href="{link_url}" target="_blank" rel="noopener noreferrer">{link_text}</a>'
+    
+    # Replace markdown links with HTML links
+    html_text = re.sub(pattern, replace_func, text)
+    
+    return html_text
+
 # Custom CSS for better UI
 st.markdown("""
 <style>
@@ -129,7 +145,8 @@ chat_container = st.container()
 with chat_container:
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
-            st.markdown(message["content"])
+            processed_content = process_links_for_new_tab(message["content"])
+            st.markdown(processed_content, unsafe_allow_html=True)
 
 # Handle quick prompt from sidebar buttons (before chat input)
 if st.session_state.quick_prompt:
@@ -147,7 +164,8 @@ if st.session_state.quick_prompt:
     with st.chat_message("assistant"):
         with st.spinner("🤖 Processing with AWS services..."):
             response = get_response(prompt, st.session_state.messages)
-            st.markdown(response)
+            processed_response = process_links_for_new_tab(response)
+            st.markdown(processed_response, unsafe_allow_html=True)
     
     # Add assistant response to chat history
     st.session_state.messages.append({"role": "assistant", "content": response})
@@ -169,7 +187,8 @@ if prompt := st.chat_input("Ask me anything about living in Dallas..."):
         with st.chat_message("assistant"):
             with st.spinner("🤖 Processing with AWS services..."):
                 response = get_response(prompt, st.session_state.messages)
-                st.markdown(response)
+                processed_response = process_links_for_new_tab(response)
+                st.markdown(processed_response, unsafe_allow_html=True)
         
         # Add assistant response to chat history
         st.session_state.messages.append({"role": "assistant", "content": response})

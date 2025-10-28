@@ -218,7 +218,9 @@ Provide a helpful answer based on the search results above with inline citations
                 if sources:
                     generated_text += "\n\n**References:**\n"
                     for idx, source in enumerate(sources, 1):
-                        generated_text += f"[{idx}] {source}\n"
+                        # Format as markdown link
+                        link_text = source if len(source) < 60 else source[:57] + "..."
+                        generated_text += f"[{idx}] [{link_text}]({source})\n"
                 
                 return generated_text
             
