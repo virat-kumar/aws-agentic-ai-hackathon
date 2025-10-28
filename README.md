@@ -137,11 +137,22 @@ This AI-powered solution acts as a personal assistant to help students overcome 
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/aws-agentic-ai-hackathon.git
+   git clone https://github.com/virat-kumar/aws-agentic-ai-hackathon.git
    cd aws-agentic-ai-hackathon
    ```
 
-2. **Set up AWS credentials**
+2. **Set up Python virtual environment**
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
+
+3. **Install dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **Set up AWS credentials**
    ```bash
    aws configure
    # Enter your AWS Access Key ID
@@ -149,22 +160,36 @@ This AI-powered solution acts as a personal assistant to help students overcome 
    # Enter your default region (e.g., us-east-1)
    ```
 
-3. **Create required AWS resources**
+5. **Configure environment variables** (optional for testing)
    ```bash
-   # Deploy infrastructure using CloudFormation or Terraform
-   ./scripts/deploy.sh
-   ```
-
-4. **Install dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-5. **Configure environment variables**
-   ```bash
-   cp .env.example .env
+   cp env.example .env
    # Edit .env with your AWS credentials and configurations
    ```
+
+### Running the Streamlit Chatbot
+
+**Option 1: Using the run script**
+```bash
+./run_app.sh
+```
+
+**Option 2: Direct command**
+```bash
+source venv/bin/activate
+streamlit run app.py
+```
+
+The app will start on `http://localhost:8501`
+
+### Features of the Chatbot Interface
+
+- 🤖 **ChatGPT-like interface** - Clean, modern conversational UI
+- 📱 **Mobile responsive** - Works on all devices
+- 🎨 **Custom styling** - Beautiful theme with Dallas branding
+- ⚡ **Real-time responses** - Powered by AWS Bedrock
+- 📊 **Sidebar navigation** - Quick links to key topics
+- 🔧 **Configurable** - Model selection and temperature controls
+- 💬 **Chat history** - Maintains conversation context
 
 ## 📁 Project Structure
 
@@ -172,7 +197,11 @@ This AI-powered solution acts as a personal assistant to help students overcome 
 aws-agentic-ai-hackathon/
 ├── README.md
 ├── requirements.txt
-├── .env.example
+├── app.py
+├── run_app.sh
+├── env.example
+├── .gitignore
+├── venv/
 ├── infrastructure/
 │   ├── cloudformation/
 │   │   ├── bedrock-setup.yml
