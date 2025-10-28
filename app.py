@@ -97,13 +97,11 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Main UI - Logo and Header
-col1, col2 = st.columns([1, 3])
+col1, col2 = st.columns([1, 6])
 
 with col1:
-    # Display UTD logo
-    with open('utdlogo.svg', 'r') as f:
-        svg_logo = f.read()
-        st.markdown(svg_logo, unsafe_allow_html=True)
+    # Display UTD logo (scaled down)
+    st.image('utdlogo.svg', width=80)
 
 with col2:
     st.markdown('<div class="main-header">Dallas Student Navigator</div>', unsafe_allow_html=True)
@@ -111,8 +109,8 @@ with col2:
 
 # Sidebar with information
 with st.sidebar:
-    # UTD Logo in sidebar
-    st.image('utdlogo.svg', width=None)
+    # UTD Logo in sidebar (smaller size)
+    st.image('utdlogo.svg', width=150)
     
     st.header("📚 About")
     st.markdown("""
