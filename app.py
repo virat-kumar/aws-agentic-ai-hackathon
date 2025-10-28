@@ -112,7 +112,7 @@ with col2:
 # Sidebar with information
 with st.sidebar:
     # UTD Logo in sidebar
-    st.image('utdlogo.svg', use_container_width=True)
+    st.image('utdlogo.svg', width=None)
     
     st.header("📚 About")
     st.markdown("""
