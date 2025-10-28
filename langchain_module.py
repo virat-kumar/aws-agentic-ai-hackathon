@@ -8,7 +8,7 @@ import re
 from typing import List, Dict
 from langchain_community.tools import DuckDuckGoSearchRun
 from dotenv import load_dotenv
-from langchain_aws import BedrockChat
+from langchain_aws import ChatBedrock
 from langchain_core.messages import SystemMessage, HumanMessage
 import boto3
 
@@ -115,7 +115,7 @@ class WebSearchAgent:
                 )
                 
                 # Initialize Bedrock LLM
-                llm = BedrockChat(
+                llm = ChatBedrock(
                     client=bedrock_client,
                     model_id=model_id,
                     temperature=0.7
