@@ -24,6 +24,9 @@ st.set_page_config(
 # Initialize session state
 if "messages" not in st.session_state:
     st.session_state.messages = []
+    
+if "quick_prompt" not in st.session_state:
+    st.session_state.quick_prompt = None
 
 def format_message(message):
     """Format message with markdown support"""
@@ -94,11 +97,21 @@ with st.sidebar:
     """)
     
     st.header("🚀 Quick Links")
-    st.button("Housing", use_container_width=True)
-    st.button("Groceries", use_container_width=True)
-    st.button("Transportation", use_container_width=True)
-    st.button("Legal Info", use_container_width=True)
-    st.button("Cultural Tips", use_container_width=True)
+    
+    if st.button("🏠 Housing", use_container_width=True, key="housing_btn"):
+        st.session_state.quick_prompt = "Where can I find affordable housing options for students in Dallas?"
+    
+    if st.button("🛒 Groceries", use_container_width=True, key="groceries_btn"):
+        st.session_state.quick_prompt = "What are the best grocery stores in Dallas for international students?"
+    
+    if st.button("🚌 Transportation", use_container_width=True, key="transportation_btn"):
+        st.session_state.quick_prompt = "How do I use public transportation in Dallas?"
+    
+    if st.button("⚖️ Legal Info", use_container_width=True, key="legal_btn"):
+        st.session_state.quick_prompt = "What are the legal requirements for international students in Dallas, Texas?"
+    
+    if st.button("🌍 Cultural Tips", use_container_width=True, key="cultural_btn"):
+        st.session_state.quick_prompt = "What cultural tips should I know as an international student in Dallas?"
     
     st.divider()
     
@@ -118,8 +131,11 @@ with chat_container:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
 
-# Chat input
-if prompt := st.chat_input("Ask me anything about living in Dallas..."):
+# Handle quick prompt from sidebar buttons (before chat input)
+if st.session_state.quick_prompt:
+    prompt = st.session_state.quick_prompt
+    st.session_state.quick_prompt = None
+    
     # Add user message to chat history
     st.session_state.messages.append({"role": "user", "content": prompt})
     
@@ -135,6 +151,28 @@ if prompt := st.chat_input("Ask me anything about living in Dallas..."):
     
     # Add assistant response to chat history
     st.session_state.messages.append({"role": "assistant", "content": response})
+    
+    st.rerun()
+
+# Chat input
+if prompt := st.chat_input("Ask me anything about living in Dallas..."):
+    # Handle the prompt
+    if prompt:
+        # Add user message to chat history
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        
+        # Display user message
+        with st.chat_message("user"):
+            st.markdown(prompt)
+        
+        # Generate and display assistant response
+        with st.chat_message("assistant"):
+            with st.spinner("🔍 Searching the web..."):
+                response = get_response(prompt, st.session_state.messages)
+                st.markdown(response)
+        
+        # Add assistant response to chat history
+        st.session_state.messages.append({"role": "assistant", "content": response})
 
 # Footer
 st.divider()

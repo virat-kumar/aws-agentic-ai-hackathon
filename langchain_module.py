@@ -168,7 +168,7 @@ Provide a helpful answer based on the search results above."""
                 response = self.llm.invoke(messages_langchain)
                 generated_text = response.content if hasattr(response, 'content') else str(response)
                 
-                return f"{generated_text}\n\n---\n*Sources: Web search results*"
+                return generated_text
             
             else:
                 # Fallback to simple response if LLM not available
@@ -179,7 +179,6 @@ Provide a helpful answer based on the search results above."""
                 response += f"**Question**: {query}\n\n"
                 response += "**Answer**:\n\n"
                 response += search_results
-                response += "\n\n---\n*Search results from DuckDuckGo*"
                 
                 return response
             
