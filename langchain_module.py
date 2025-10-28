@@ -4,6 +4,7 @@ Handles web search and query validation for international students using Azure O
 """
 
 import os
+import re
 from typing import List, Dict
 from langchain_community.tools import DuckDuckGoSearchRun
 from dotenv import load_dotenv
@@ -102,6 +103,26 @@ class WebSearchAgent:
         except Exception as e:
             print(f"Error initializing Azure OpenAI: {e}")
             return None
+    
+    def _extract_sources(self, search_results: str) -> List[str]:
+        """Extract URLs and sources from search results"""
+        sources = []
+        
+        # Try to find URLs in the search results
+        url_pattern = r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'
+        urls = re.findall(url_pattern, search_results)
+        
+        # Get unique URLs
+        seen = set()
+        for url in urls:
+            # Clean up URL (remove trailing punctuation)
+            url = url.rstrip('.,;)')
+            if url not in seen:
+                seen.add(url)
+                sources.append(url)
+        
+        # Limit to top 5 sources
+        return sources[:5]
         
     def search_and_respond(self, query: str, conversation_history: List[Dict] = None) -> str:
         """
@@ -159,14 +180,45 @@ User Question: {query}
 
 Provide a helpful answer based on the search results above."""
 
+                # Extract URLs from search results for citations
+                sources = self._extract_sources(search_results)
+                
+                # Add instruction for inline citations
+                system_prompt_with_citations = f"""You are a helpful assistant for international students in Dallas, Texas.
+You help with: Housing, Groceries, Transportation, Legal Info, and Cultural Tips.
+
+The user asked about: {query}
+Category: {category_str}
+
+Use the following search results to provide a comprehensive, accurate answer.
+Be friendly, empathetic, and provide practical, actionable advice.
+Focus on information relevant to international students.
+
+IMPORTANT: When mentioning specific information from the search results, add inline citations like [1], [2], etc. in your response."""
+                
+                prompt_with_citations = f"""{system_prompt_with_citations}
+
+Search Results:
+{search_results}
+
+User Question: {query}
+
+Provide a helpful answer based on the search results above with inline citations [1], [2], etc."""
+
                 # Generate response using Azure OpenAI
                 messages_langchain = [
-                    SystemMessage(content=system_prompt),
-                    HumanMessage(content=prompt)
+                    SystemMessage(content=system_prompt_with_citations),
+                    HumanMessage(content=prompt_with_citations)
                 ]
                 
                 response = self.llm.invoke(messages_langchain)
                 generated_text = response.content if hasattr(response, 'content') else str(response)
+                
+                # Append sources if available
+                if sources:
+                    generated_text += "\n\n**References:**\n"
+                    for idx, source in enumerate(sources, 1):
+                        generated_text += f"[{idx}] {source}\n"
                 
                 return generated_text
             
