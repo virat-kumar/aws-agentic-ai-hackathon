@@ -114,16 +114,11 @@ class WebSearchAgent:
                     region_name=aws_region
                 )
                 
-                # Initialize Bedrock LLM with reasoning disabled
+                # Initialize Bedrock LLM
                 llm = ChatBedrock(
                     client=bedrock_client,
                     model_id=model_id,
-                    temperature=0.7,
-                    model_kwargs={
-                        "trace": False,
-                        "return_thoughts": False,
-                        "enableTrace": False
-                    }
+                    temperature=0.7
                 )
                 print(f"Successfully initialized AWS Bedrock with model: {model_id}")
                 return llm
