@@ -96,10 +96,22 @@ Your IAM user needs the following permissions to use Bedrock:
 
 Update `BEDROCK_MODEL_ID` in `.env` file to use different models:
 
-- **Claude 3 Sonnet**: `anthropic.claude-3-sonnet-20240229-v1:0` (Recommended)
-- **Claude 3.5 Sonnet**: `anthropic.claude-3-5-sonnet-20241022-v2:0` (Latest)
-- **Claude 3 Haiku**: `anthropic.claude-3-haiku-20240307-v1:0` (Fast & Cheap)
-- **Claude 2**: `anthropic.claude-v2`
+## Latest & Best (2025)
+
+- **Claude 4 Sonnet**: `anthropic.claude-sonnet-4-20250514-v1:0` (Latest)
+- **Claude 3.7 Sonnet**: `anthropic.claude-3-7-sonnet-20250219-v1:0`
+- **Claude 3.5 Sonnet**: `anthropic.claude-3-5-sonnet-20241022-v2:0` ⭐ **Recommended**
+- **Claude 4 Opus**: `anthropic.claude-opus-4-20250514-v1:0` (Most Powerful)
+
+## Cost-Effective Options
+
+- **Claude 3.5 Haiku**: `anthropic.claude-3-5-haiku-20241022-v1:0` (Fast & Cheap)
+- **Claude 3 Haiku**: `anthropic.claude-3-haiku-20240307-v1:0` (Very Fast & Cheap)
+
+## ⚠️ DO NOT USE (End of Life)
+
+- ~~`anthropic.claude-3-sonnet-20240229-v1:0`~~ (END OF LIFE)
+- ~~`anthropic.claude-v2`~~ (END OF LIFE)
 
 ## Security Best Practices
 
