@@ -148,6 +148,47 @@ class WebSearchAgent:
         
         # Limit to top 5 sources
         return sources[:5]
+    
+    def _remove_thinking_process(self, text: str) -> str:
+        """Remove thinking process and internal notes from response"""
+        # Common patterns that indicate thinking process
+        thinking_patterns = [
+            r'(?i)^we must mention.*$',
+            r'(?i)^let\'s craft.*$',
+            r'(?i)^let me.*$',
+            r'(?i)^i need to.*$',
+            r'(?i)^i should.*$',
+            r'(?i)^internal note.*$',
+            r'(?i)^thinking:.*$',
+            r'(?i)^reasoning:.*$',
+        ]
+        
+        lines = text.split('\n')
+        cleaned_lines = []
+        skip_until_blank = False
+        
+        for line in lines:
+            # Skip lines that match thinking patterns
+            is_thinking = False
+            for pattern in thinking_patterns:
+                if re.match(pattern, line.strip()):
+                    is_thinking = True
+                    break
+            
+            # If we hit a thinking line, skip until blank line
+            if is_thinking:
+                skip_until_blank = True
+                continue
+            
+            # If skipping, only add back after blank line
+            if skip_until_blank:
+                if line.strip() == '':
+                    skip_until_blank = False
+                continue
+            
+            cleaned_lines.append(line)
+        
+        return '\n'.join(cleaned_lines).strip()
         
     def search_and_respond(self, query: str, conversation_history: List[Dict] = None) -> str:
         """
@@ -220,16 +261,18 @@ Use the following search results to provide a comprehensive, accurate answer.
 Be friendly, empathetic, and provide practical, actionable advice.
 Focus on information relevant to international students.
 
-IMPORTANT: When mentioning specific information from the search results, add inline citations like [1], [2], etc. in your response."""
-                
-                prompt_with_citations = f"""{system_prompt_with_citations}
+IMPORTANT: When mentioning specific information from the search results, add inline citations like [1], [2], etc. in your response.
 
-Search Results:
+CRITICAL: Only output the final answer. Do not include your thinking process, reasoning, or any internal notes in your response. Provide only the actual answer to the user."""
+                
+                prompt_with_citations = f"""Search Results:
 {search_results}
 
 User Question: {query}
 
-Provide a helpful answer based on the search results above with inline citations [1], [2], etc."""
+Provide a helpful answer based on the search results above with inline citations [1], [2], etc.
+
+Remember: Only provide the final answer. Do not include any thinking process, internal notes, or reasoning in your response."""
 
                 # Generate response using AWS Bedrock LLM
                 messages_langchain = [
@@ -239,6 +282,9 @@ Provide a helpful answer based on the search results above with inline citations
                 
                 response = self.llm.invoke(messages_langchain)
                 generated_text = response.content if hasattr(response, 'content') else str(response)
+                
+                # Post-process to remove thinking process and internal notes
+                generated_text = self._remove_thinking_process(generated_text)
                 
                 # Append sources if available
                 if sources:
