@@ -8,8 +8,9 @@ import re
 from typing import List, Dict
 from langchain_community.tools import DuckDuckGoSearchRun
 from dotenv import load_dotenv
-from langchain_openai import AzureChatOpenAI
+from langchain_aws import BedrockChat
 from langchain_core.messages import SystemMessage, HumanMessage
+import boto3
 
 load_dotenv()
 
@@ -96,22 +97,30 @@ class WebSearchAgent:
         self.llm = self._init_bedrock_llm()
     
     def _init_bedrock_llm(self):
-        """Initialize AWS Bedrock LLM (using Azure OpenAI SDK for compatibility)"""
+        """Initialize AWS Bedrock LLM"""
         try:
-            # For AWS hackathon, using Azure OpenAI SDK as proxy for AWS Bedrock
-            azure_endpoint = os.getenv('AZURE_OPENAI_ENDPOINT')
-            azure_api_key = os.getenv('AZURE_OPENAI_API_KEY')
-            azure_api_version = os.getenv('AZURE_OPENAI_API_VERSION', '2024-02-15-preview')
-            model_name = os.getenv('AZURE_OPENAI_MODEL', 'gpt-4o')
+            # Get AWS credentials from environment
+            aws_access_key = os.getenv('AWS_ACCESS_KEY_ID')
+            aws_secret_key = os.getenv('AWS_SECRET_ACCESS_KEY')
+            aws_region = os.getenv('AWS_REGION', 'us-east-1')
+            model_id = os.getenv('BEDROCK_MODEL_ID', 'anthropic.claude-3-sonnet-20240229-v1:0')
             
-            if azure_endpoint and azure_api_key:
-                llm = AzureChatOpenAI(
-                    azure_endpoint=azure_endpoint,
-                    api_key=azure_api_key,
-                    api_version=azure_api_version,
-                    model=model_name,
+            if aws_access_key and aws_secret_key:
+                # Create boto3 client with credentials
+                bedrock_client = boto3.client(
+                    service_name='bedrock-runtime',
+                    aws_access_key_id=aws_access_key,
+                    aws_secret_access_key=aws_secret_key,
+                    region_name=aws_region
+                )
+                
+                # Initialize Bedrock LLM
+                llm = BedrockChat(
+                    client=bedrock_client,
+                    model_id=model_id,
                     temperature=0.7
                 )
+                print(f"Successfully initialized AWS Bedrock with model: {model_id}")
                 return llm
             else:
                 print("Warning: AWS Bedrock credentials not found. Using web search only.")
